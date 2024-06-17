@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-vehicles-deployment
+  labels:
+    app: ms-vehicles-deployment
+spec:
+  selector:
+    matchLabels:
+      app: ms-vehicles-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ms-vehicles-deployment
+    spec:
+      containers:
+        - name: ms-vehicles
+          image: josellancamil/ms-vehicles
+          ports:
+            - containerPort: 8093
+          env:
+            - name: SERVER_PORT
+              value: "0"
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config-map
+                  key: DB_HOST_VEHICLES
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config-map
+                  key: DB_PORT_VEHICLES
+            - name: DB_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config-map
+                  key: DB_DBNAME_VEHICLES
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: DB_USER_VEHICLES
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: DB_PASSWORD_VEHICLES
