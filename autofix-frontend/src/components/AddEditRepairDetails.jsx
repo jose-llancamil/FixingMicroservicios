@@ -23,6 +23,7 @@ const AddEditRepairDetails = () => {
   const [repairAmount, setRepairAmount] = useState(0);
   const [repairTypes, setRepairTypes] = useState([]);
   const [engineType, setEngineType] = useState("");
+  const [loading, setLoading] = useState(true);
   const { id, vehicleId } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
@@ -42,23 +43,26 @@ const AddEditRepairDetails = () => {
         });
     }
 
-    // Obtener el tipo de motor del vehículo
-    vehicleService.get(vehicleId)
-      .then(response => {
-        setEngineType(response.data.engineType || "");
-      })
-      .catch(error => {
-        console.log("Error fetching vehicle details.", error);
-      });
+    if (vehicleId) {
+      vehicleService.get(vehicleId)
+        .then(response => {
+          setEngineType(response.data.engineType || "");
+        })
+        .catch(error => {
+          console.log("Error fetching vehicle details.", error);
+        });
+    }
   }, [id, isEdit, vehicleId]);
 
   useEffect(() => {
     repairPricesListService.getRepairTypes()
       .then(response => {
         setRepairTypes(response.data);
+        setLoading(false);
       })
       .catch(error => {
         console.log("Error fetching repair types.", error);
+        setLoading(false);
       });
   }, []);
 
@@ -66,6 +70,18 @@ const AddEditRepairDetails = () => {
     e.preventDefault();
     const formattedRepairDate = repairDate ? repairDate.format("YYYY-MM-DD") : null;
     const formattedRepairTime = repairTime ? repairTime.format("HH:mm:ss") : null;
+
+    // Asegúrate de que repairType sea válido
+    if (!repairTypes.includes(repairType)) {
+      console.error("Valor fuera de rango para repairType");
+      return;
+    }
+
+    // Asegúrate de que engineType esté definido
+    if (!engineType) {
+      console.error("Engine type no definido");
+      return;
+    }
 
     console.log("repairType:", repairType);
     console.log("engineType:", engineType);
@@ -97,6 +113,10 @@ const AddEditRepairDetails = () => {
         console.log("Error fetching repair price.", error);
       });
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>

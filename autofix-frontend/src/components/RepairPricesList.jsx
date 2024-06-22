@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from '@mui/icons-material/Add';
+import Box from "@mui/material/Box";
 
 const RepairPricesList = () => {
   const [repairs, setRepairs] = useState([]);
@@ -56,14 +57,15 @@ const RepairPricesList = () => {
   return (
     <TableContainer component={Paper}>
       <br />
-      <Link to="/repair-list/create" style={{ textDecoration: "none" }}>
-      <div className="card-content">
-        <Button variant="contained" color="primary" startIcon={<AddIcon />}>
-          Añadir Tipo Reparación
-        </Button>
-      </div>
-      </Link>
-      <br /><br />
+      <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
+      <h2>Tipos de Reparaciones y sus Precios</h2>
+        <Link to="/repair-list/create" style={{ textDecoration: "none" }}>
+          <Button variant="contained" color="primary" startIcon={<AddIcon />}>
+            Añadir Tipo Reparación
+          </Button>
+        </Link>
+      </Box>
+      <br />
       <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
         <TableHead>
           <TableRow>

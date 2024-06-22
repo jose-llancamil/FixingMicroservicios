@@ -107,51 +107,6 @@ public class RepairDetailsService {
         }
     }
 
-//    /**
-//     * Saves new repair details and updates the related repair amounts.
-//     * @param repairDetailsEntity the repair details entity to be saved.
-//     * @return the saved repair details entity.
-//     */
-//    public RepairDetailsEntity saveRepairDetails(RepairDetailsEntity repairDetailsEntity) {
-//        Optional<RepairEntity> repairOpt = repairRepository.findById(repairDetailsEntity.getRepairId());
-//        if (repairOpt.isPresent()) {
-//            Long vehicleId = repairOpt.get().getVehicleId();
-//            VehicleDTO vehicle = vehicleFeignClient.getVehicleById(vehicleId);
-//
-//            List<PriceListDTO> priceList = repairListFeignClient.getAllRepairs();
-//            PriceListDTO matchingPrice = priceList.stream()
-//                    .filter(price -> price.getRepairType().equals(repairDetailsEntity.getRepairType()))
-//                    .findFirst()
-//                    .orElseThrow(() -> new RuntimeException("Repair type not found in price list"));
-//
-//            BigDecimal repairPrice = getRepairPriceByEngineType(matchingPrice, vehicle.getEngineType());
-//            repairDetailsEntity.setRepairAmount(repairPrice);
-//
-//            RepairDetailsEntity savedDetail = repairDetailsRepository.save(repairDetailsEntity);
-//
-//            updateRepairAmounts(repairDetailsEntity.getRepairId());
-//
-//            return savedDetail;
-//        } else {
-//            throw new RuntimeException("Repair not found");
-//        }
-//    }
-//
-//    private BigDecimal getRepairPriceByEngineType(PriceListDTO priceList, String engineType) {
-//        switch (engineType.toLowerCase()) {
-//            case "gasolina":
-//                return BigDecimal.valueOf(priceList.getGasolinePrice());
-//            case "diésel":
-//                return BigDecimal.valueOf(priceList.getDieselPrice());
-//            case "híbrido":
-//                return BigDecimal.valueOf(priceList.getHybridPrice());
-//            case "eléctrico":
-//                return BigDecimal.valueOf(priceList.getElectricPrice());
-//            default:
-//                throw new IllegalArgumentException("Invalid engine type: " + engineType);
-//        }
-//    }
-
     /**
      * Updates an existing repair details by its ID.
      * @param id the ID of the repair details to be updated.

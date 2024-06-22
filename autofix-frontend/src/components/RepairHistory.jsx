@@ -35,7 +35,10 @@ const RepairHistory = () => {
   }, []);
 
   return (
-    <Box sx={{ width: '100%', overflow: 'auto' }}>
+    <Box display="flex" flexDirection="column" alignItems="center" mb={2} sx={{ width: '100%', overflow: 'auto' }}>
+      <br />
+      <h2>Reporte Histórico de Reparaciones</h2>
+      <br />
       <ScrollableTableContainer component={Paper} sx={{ maxHeight: "calc(100vh - 200px)", overflow: "auto", width: '100%' }}>
         <Table stickyHeader sx={{ minWidth: 1200 }} size="small" aria-label="historial de reparaciones">
           <TableHead>

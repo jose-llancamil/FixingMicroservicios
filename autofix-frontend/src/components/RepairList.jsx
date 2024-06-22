@@ -61,14 +61,15 @@ const RepairList = () => {
   return (
     <TableContainer component={Paper}>
       <br />
-      <Link to="/repairs/create" style={{ textDecoration: "none" }}>
-        <div className="card-content">
+      <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
+      <h2>Lista de Reparaciones</h2>
+        <Link to="/repairs/create" style={{ textDecoration: "none" }}>
           <Button variant="contained" color="primary" startIcon={<AddIcon />}>
             Añadir Reparación
           </Button>
-        </div>
-      </Link>
-      <br /><br />
+        </Link>
+      </Box>
+      <br />
       <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
         <TableHead>
           <TableRow>

@@ -4,6 +4,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from "dayjs";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import reportService from '../services/report.service';
+import Box from '@mui/material/Box';
 
 const RepairTypeReport = () => {
   const [date, setDate] = useState(dayjs());
@@ -25,6 +26,9 @@ const RepairTypeReport = () => {
 
   return (
     <div>
+      <Box display="flex" flexDirection="column" alignItems="center" mb={2} sx={{ width: '100%', overflow: 'auto' }}>
+      <br />
+      <h2>Reporte por Tipo de Reparación</h2>
       <div className="date-selector-container">
         <div className="date-selector">
           <p>Select Month and Year</p>
@@ -67,6 +71,7 @@ const RepairTypeReport = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      </Box>
     </div>
   );
 };

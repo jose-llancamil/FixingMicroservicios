@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from '@mui/icons-material/Add';
+import Box from "@mui/material/Box";
 
 const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -56,18 +57,19 @@ const VehicleList = () => {
   return (
     <TableContainer component={Paper}>
       <br />
-      <Link to="/vehicles/create" style={{ textDecoration: "none" }}>
-        <div className="card-content">
+      <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
+      <h2>Lista de Vehículos</h2>
+        <Link to="/vehicles/create" style={{ textDecoration: "none" }}>
           <Button variant="contained" color="primary" startIcon={<AddIcon />}>
             Añadir Vehículo
           </Button>
-        </div>
-      </Link>
-      <br /><br />
+        </Link>
+      </Box>
+      <br />
       <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
         <TableHead>
           <TableRow>
-          <TableCell align="left" sx={{ fontWeight: "bold" }}>ID</TableCell>
+            <TableCell align="left" sx={{ fontWeight: "bold" }}>ID</TableCell>
             <TableCell align="left" sx={{ fontWeight: "bold" }}>Patente</TableCell>
             <TableCell align="left" sx={{ fontWeight: "bold" }}>Marca</TableCell>
             <TableCell align="left" sx={{ fontWeight: "bold" }}>Modelo</TableCell>
