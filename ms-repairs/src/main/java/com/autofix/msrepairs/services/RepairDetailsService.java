@@ -117,8 +117,26 @@ public class RepairDetailsService {
         if (!repairDetailsRepository.existsById(id)) {
             throw new IllegalArgumentException("Repair details not found with id " + id);
         }
-        repairDetails.setId(id);
-        return repairDetailsRepository.save(repairDetails);
+
+        Optional<RepairEntity> repairOpt = repairRepository.findById(repairDetails.getRepairId());
+        if (repairOpt.isPresent()) {
+            Long vehicleId = repairOpt.get().getVehicleId();
+            VehicleDTO vehicle = vehicleFeignClient.getVehicleById(vehicleId);
+
+            BigDecimal repairPrice = repairListFeignClient.getRepairPrice(
+                    repairDetails.getRepairType(), vehicle.getEngineType()
+            );
+            repairDetails.setRepairAmount(repairPrice);
+
+            repairDetails.setId(id);
+            RepairDetailsEntity updatedDetail = repairDetailsRepository.save(repairDetails);
+
+            updateRepairAmounts(repairDetails.getRepairId());
+
+            return updatedDetail;
+        } else {
+            throw new RuntimeException("Repair not found");
+        }
     }
 
     /**
@@ -126,10 +144,11 @@ public class RepairDetailsService {
      * @param id the ID of the repair detail to be deleted.
      */
     public void deleteRepairDetailById(Long id) {
-        if (!repairDetailsRepository.existsById(id)) {
-            throw new IllegalArgumentException("Repair detail not found with id " + id);
-        }
+        RepairDetailsEntity repairDetail = repairDetailsRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Repair detail not found with id " + id));
+        Long repairId = repairDetail.getRepairId();
         repairDetailsRepository.deleteById(id);
+        updateRepairAmounts(repairId);
     }
 
     /**
@@ -157,9 +176,9 @@ public class RepairDetailsService {
         List<RepairDetailsEntity> details = repairDetailsRepository.findAllByRepairId(repairId);
 
         double totalRepairAmount = details.stream().mapToDouble(d -> d.getRepairAmount().doubleValue()).sum();
-        double surchargeAmount = calculateSurcharges(totalRepairAmount, repairId);
-        double discountAmount = calculateDiscounts(totalRepairAmount, repairId);
-        double taxAmount = totalRepairAmount * 0.19;
+        double surchargeAmount = details.isEmpty() ? 0 : calculateSurcharges(totalRepairAmount, repairId);
+        double discountAmount = details.isEmpty() ? 0 : calculateDiscounts(totalRepairAmount, repairId);
+        double taxAmount = details.isEmpty() ? 0 : totalRepairAmount * 0.19;
         double totalCost = totalRepairAmount + surchargeAmount - discountAmount + taxAmount;
 
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();

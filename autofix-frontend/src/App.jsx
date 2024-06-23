@@ -34,7 +34,7 @@ function App() {
           <Route path="/repairs/edit/:id" element={<AddEditRepair />} />
           <Route path="/repairs/details/vehicle/:vehicleId" element={<RepairDetails />} />
           <Route path="/repair-details/create/:vehicleId" element={<AddEditRepairDetails />} />
-          <Route path="/repair-details/edit/:id" element={<AddEditRepairDetails />} />
+          <Route path="/repair-details/edit/:id/:vehicleId" element={<AddEditRepairDetails />} />
           <Route path="/repairs/history" element={<RepairHistory />} />
           <Route path="/reports/repair-type" element={<RepairTypeReport />} />
           <Route path="/reports/monthly-comparison" element={<MonthlyRepairComparisonReport />} />

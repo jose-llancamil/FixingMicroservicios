@@ -1,7 +1,9 @@
 package com.autofix.msrepairs.services;
 
 import com.autofix.msrepairs.clients.VehicleFeignClient;
+import com.autofix.msrepairs.entities.RepairDetailsEntity;
 import com.autofix.msrepairs.entities.RepairEntity;
+import com.autofix.msrepairs.repositories.RepairDetailsRepository;
 import com.autofix.msrepairs.repositories.RepairRepository;
 import com.autofix.msrepairs.requests.VehicleDTO;
 import com.autofix.msrepairs.requests.VehicleRepairHistoryDTO;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class RepairService {
 
     private final RepairRepository repairRepository;
+    private final RepairDetailsRepository repairDetailsRepository;
     private final VehicleFeignClient vehicleFeignClient;
 
     /**
@@ -71,6 +74,8 @@ public class RepairService {
         if (!repairRepository.existsById(id)) {
             throw new IllegalArgumentException("Repair not found with id " + id);
         }
+        List<RepairDetailsEntity> repairDetails = repairDetailsRepository.findAllByRepairId(id);
+        repairDetailsRepository.deleteAll(repairDetails);
         repairRepository.deleteById(id);
     }
 

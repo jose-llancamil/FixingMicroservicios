@@ -32,7 +32,7 @@ const RepairDetails = () => {
   }, [vehicleId]);
 
   const handleEdit = (id) => {
-    navigate(`/repair-details/edit/${id}`);
+    navigate(`/repair-details/edit/${id}/${vehicleId}`);
   };
 
   const handleDelete = (id) => {

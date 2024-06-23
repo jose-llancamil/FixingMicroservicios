@@ -29,55 +29,44 @@ const AddEditRepairDetails = () => {
   const isEdit = Boolean(id);
 
   useEffect(() => {
-    if (isEdit) {
-      repairService.getRepairDetailsById(id)
-        .then(response => {
+    const fetchDetails = async () => {
+      try {
+        if (isEdit) {
+          const response = await repairService.getRepairDetailsById(id);
           const detail = response.data;
           setRepairId(detail.repairId || "");
           setRepairType(detail.repairType || "");
           setRepairDate(detail.repairDate ? dayjs(detail.repairDate) : null);
           setRepairTime(detail.repairTime ? dayjs(detail.repairTime, "HH:mm:ss") : null);
-        })
-        .catch(error => {
-          console.log("Error fetching repair detail.", error);
-        });
-    }
-
-    if (vehicleId) {
-      vehicleService.get(vehicleId)
-        .then(response => {
+        }
+        if (vehicleId) {
+          const response = await vehicleService.get(vehicleId);
+          console.log("Vehicle response:", response.data);  // Log para verificar respuesta del vehículo
           setEngineType(response.data.engineType || "");
-        })
-        .catch(error => {
-          console.log("Error fetching vehicle details.", error);
-        });
-    }
+        } else {
+          console.error("vehicleId no está definido");
+        }
+        const repairTypesResponse = await repairPricesListService.getRepairTypes();
+        setRepairTypes(repairTypesResponse.data);
+      } catch (error) {
+        console.log("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
   }, [id, isEdit, vehicleId]);
 
-  useEffect(() => {
-    repairPricesListService.getRepairTypes()
-      .then(response => {
-        setRepairTypes(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.log("Error fetching repair types.", error);
-        setLoading(false);
-      });
-  }, []);
-
-  const saveRepairDetail = (e) => {
+  const saveRepairDetail = async (e) => {
     e.preventDefault();
     const formattedRepairDate = repairDate ? repairDate.format("YYYY-MM-DD") : null;
     const formattedRepairTime = repairTime ? repairTime.format("HH:mm:ss") : null;
 
-    // Asegúrate de que repairType sea válido
     if (!repairTypes.includes(repairType)) {
       console.error("Valor fuera de rango para repairType");
       return;
     }
 
-    // Asegúrate de que engineType esté definido
     if (!engineType) {
       console.error("Engine type no definido");
       return;
@@ -86,32 +75,25 @@ const AddEditRepairDetails = () => {
     console.log("repairType:", repairType);
     console.log("engineType:", engineType);
 
-    repairPricesListService.getRepairPrice(repairType, engineType)
-      .then(response => {
-        const price = response.data;
-        const repairDetail = {
-          repairId,
-          repairType,
-          repairDate: formattedRepairDate,
-          repairTime: formattedRepairTime,
-          repairAmount: price
-        };
+    const repairDetail = {
+      repairId,
+      repairType,
+      repairDate: formattedRepairDate,
+      repairTime: formattedRepairTime,
+      repairAmount: repairAmount // This will be recalculated in the backend
+    };
 
-        const action = isEdit ?
-          repairService.updateRepairDetails(id, repairDetail) :
-          repairService.createRepairDetails([repairDetail]);
-        action
-          .then(response => {
-            console.log(`${isEdit ? "Updated" : "Added"} repair detail successfully.`, response.data);
-            navigate(`/repairs/details/vehicle/${vehicleId}`);
-          })
-          .catch(error => {
-            console.error(`Error ${isEdit ? "updating" : "adding"} repair detail.`, error);
-          });
-      })
-      .catch(error => {
-        console.log("Error fetching repair price.", error);
-      });
+    try {
+      const action = isEdit
+        ? repairService.updateRepairDetails(id, repairDetail)
+        : repairService.createRepairDetails([repairDetail]);
+
+      const response = await action;
+      console.log(`${isEdit ? "Updated" : "Added"} repair detail successfully.`, response.data);
+      navigate(`/repairs/details/vehicle/${vehicleId}`);
+    } catch (error) {
+      console.error(`Error ${isEdit ? "updating" : "adding"} repair detail.`, error);
+    }
   };
 
   if (loading) {
