@@ -34,27 +34,73 @@ public class ReportService {
                         Collectors.collectingAndThen(Collectors.toList(), repairDetailsList -> {
                             RepairTypeReportDTO dto = new RepairTypeReportDTO();
                             dto.setRepairType(repairDetailsList.get(0).getRepairType());
-                            dto.setSedanCount(repairDetailsList.stream().filter(rd -> {
+
+                            long sedanCount = repairDetailsList.stream().filter(rd -> {
                                 VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
                                 return vehicle.getType().equalsIgnoreCase("sedan");
-                            }).count());
-                            dto.setHatchbackCount(repairDetailsList.stream().filter(rd -> {
+                            }).count();
+                            dto.setSedanCount(sedanCount);
+                            dto.setSedanTotalAmount(repairDetailsList.stream().filter(rd -> {
+                                VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
+                                return vehicle.getType().equalsIgnoreCase("sedan");
+                            }).mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+
+                            long hatchbackCount = repairDetailsList.stream().filter(rd -> {
                                 VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
                                 return vehicle.getType().equalsIgnoreCase("hatchback");
-                            }).count());
-                            dto.setSuvCount(repairDetailsList.stream().filter(rd -> {
+                            }).count();
+                            dto.setHatchbackCount(hatchbackCount);
+                            dto.setHatchbackTotalAmount(repairDetailsList.stream().filter(rd -> {
+                                VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
+                                return vehicle.getType().equalsIgnoreCase("hatchback");
+                            }).mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+
+                            long suvCount = repairDetailsList.stream().filter(rd -> {
                                 VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
                                 return vehicle.getType().equalsIgnoreCase("suv");
-                            }).count());
-                            dto.setPickupCount(repairDetailsList.stream().filter(rd -> {
+                            }).count();
+                            dto.setSuvCount(suvCount);
+                            dto.setSuvTotalAmount(repairDetailsList.stream().filter(rd -> {
+                                VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
+                                return vehicle.getType().equalsIgnoreCase("suv");
+                            }).mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+
+                            long pickupCount = repairDetailsList.stream().filter(rd -> {
                                 VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
                                 return vehicle.getType().equalsIgnoreCase("pickup");
-                            }).count());
-                            dto.setVanCount(repairDetailsList.stream().filter(rd -> {
+                            }).count();
+                            dto.setPickupCount(pickupCount);
+                            dto.setPickupTotalAmount(repairDetailsList.stream().filter(rd -> {
+                                VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
+                                return vehicle.getType().equalsIgnoreCase("pickup");
+                            }).mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+
+                            long vanCount = repairDetailsList.stream().filter(rd -> {
                                 VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
                                 return vehicle.getType().equalsIgnoreCase("furgoneta");
-                            }).count());
-                            dto.setTotalAmount(repairDetailsList.stream().mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+                            }).count();
+                            dto.setVanCount(vanCount);
+                            dto.setVanTotalAmount(repairDetailsList.stream().filter(rd -> {
+                                VehicleDTO vehicle = vehicleFeignClient.getVehicleById(repairRepository.findById(rd.getRepairId()).get().getVehicleId());
+                                return vehicle.getType().equalsIgnoreCase("furgoneta");
+                            }).mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum());
+
+                            dto.setTotalAmount(
+                                            dto.getSedanTotalAmount() +
+                                            dto.getHatchbackTotalAmount() +
+                                            dto.getSuvTotalAmount() +
+                                            dto.getPickupTotalAmount() +
+                                            dto.getVanTotalAmount()
+                            );
+
+                            dto.setTotalCount(
+                                            sedanCount +
+                                            hatchbackCount +
+                                            suvCount +
+                                            pickupCount +
+                                            vanCount
+                            );
+
                             return dto;
                         })
                 ));
