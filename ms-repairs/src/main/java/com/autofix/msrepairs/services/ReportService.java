@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -111,23 +112,75 @@ public class ReportService {
     public List<MonthlyRepairComparisonDTO> generateMonthlyRepairComparisonReport(int month, int year) {
         LocalDate date = LocalDate.of(year, month, 1);
 
-        List<MonthlyRepairComparisonDTO> report = List.of(
-                getMonthlyRepairData(date.minusMonths(2)),
-                getMonthlyRepairData(date.minusMonths(1)),
-                getMonthlyRepairData(date)
-        );
+        Map<String, MonthlyRepairComparisonDTO> dataMonth1 = getMonthlyRepairData(date.minusMonths(2), null);
+        Map<String, MonthlyRepairComparisonDTO> dataMonth2 = getMonthlyRepairData(date.minusMonths(1), dataMonth1);
+        Map<String, MonthlyRepairComparisonDTO> dataMonth3 = getMonthlyRepairData(date, dataMonth2);
+
+        List<MonthlyRepairComparisonDTO> report = new ArrayList<>(dataMonth3.values());
+
+        for (MonthlyRepairComparisonDTO dto : report) {
+            MonthlyRepairComparisonDTO month1Dto = dataMonth1.get(dto.getRepairType());
+            if (month1Dto != null) {
+                dto.setRepairsCountPerMonth1(month1Dto.getRepairsCountPerMonth3());
+                dto.setRepairsAmountPerMonth1(month1Dto.getRepairsAmountPerMonth3());
+
+                if (month1Dto.getRepairsCountPerMonth3() != 0) {
+                    dto.setVariationPerMonth1((dto.getRepairsCountPerMonth2() - month1Dto.getRepairsCountPerMonth3()) / (double) month1Dto.getRepairsCountPerMonth3() * 100);
+                } else {
+                    dto.setVariationPerMonth1(dto.getRepairsCountPerMonth2() * 100);
+                }
+
+                if (month1Dto.getRepairsAmountPerMonth3() != 0) {
+                    dto.setVariationAmountPerMonth1((dto.getRepairsAmountPerMonth2() - month1Dto.getRepairsAmountPerMonth3()) / month1Dto.getRepairsAmountPerMonth3() * 100);
+                } else {
+                    dto.setVariationAmountPerMonth1(dto.getRepairsAmountPerMonth2() * 100);
+                }
+            }
+        }
 
         return report;
     }
 
-    private MonthlyRepairComparisonDTO getMonthlyRepairData(LocalDate date) {
+    private Map<String, MonthlyRepairComparisonDTO> getMonthlyRepairData(LocalDate date, Map<String, MonthlyRepairComparisonDTO> previousMonthData) {
         List<RepairEntity> repairs = repairRepository.findAllByMonthAndYear(date.getMonthValue(), date.getYear());
 
-        MonthlyRepairComparisonDTO dto = new MonthlyRepairComparisonDTO();
-        dto.setMonth(date.getMonth().name());
-        dto.setRepairCount(repairs.size());
-        dto.setTotalAmount(repairs.stream().mapToDouble(repair -> repair.getTotalCost().doubleValue()).sum());
+        Map<String, MonthlyRepairComparisonDTO> currentMonthData = repairs.stream()
+                .flatMap(repair -> repairDetailsRepository.findAllByRepairId(repair.getId()).stream())
+                .collect(Collectors.groupingBy(
+                        RepairDetailsEntity::getRepairType,
+                        Collectors.collectingAndThen(Collectors.toList(), repairDetailsList -> {
+                            MonthlyRepairComparisonDTO dto = new MonthlyRepairComparisonDTO();
+                            dto.setRepairType(repairDetailsList.get(0).getRepairType());
 
-        return dto;
+                            int repairCount = repairDetailsList.size();
+                            double repairAmount = repairDetailsList.stream().mapToDouble(rd -> rd.getRepairAmount().doubleValue()).sum();
+
+                            dto.setRepairsCountPerMonth3(repairCount);
+                            dto.setRepairsAmountPerMonth3(repairAmount);
+
+                            if (previousMonthData != null && previousMonthData.containsKey(dto.getRepairType())) {
+                                MonthlyRepairComparisonDTO prevMonthDto = previousMonthData.get(dto.getRepairType());
+
+                                dto.setRepairsCountPerMonth2(prevMonthDto.getRepairsCountPerMonth3());
+                                dto.setRepairsAmountPerMonth2(prevMonthDto.getRepairsAmountPerMonth3());
+
+                                if (prevMonthDto.getRepairsCountPerMonth3() != 0) {
+                                    dto.setVariationPerMonth2((repairCount - prevMonthDto.getRepairsCountPerMonth3()) / (double) prevMonthDto.getRepairsCountPerMonth3() * 100);
+                                } else {
+                                    dto.setVariationPerMonth2(repairCount * 100);
+                                }
+
+                                if (prevMonthDto.getRepairsAmountPerMonth3() != 0) {
+                                    dto.setVariationAmountPerMonth2((repairAmount - prevMonthDto.getRepairsAmountPerMonth3()) / prevMonthDto.getRepairsAmountPerMonth3() * 100);
+                                } else {
+                                    dto.setVariationAmountPerMonth2(repairAmount * 100);
+                                }
+                            }
+
+                            return dto;
+                        })
+                ));
+
+        return currentMonthData;
     }
 }
