@@ -24,23 +24,31 @@ public class DiscountService {
      */
     @Transactional
     public void applyDiscountCoupon(Long repairId, String brand) {
+        // Buscar el cupón por la marca
         Optional<DiscountCouponEntity> couponOpt = discountCouponRepository.findByBrand(brand);
         if (couponOpt.isPresent()) {
             DiscountCouponEntity coupon = couponOpt.get();
+
+            // Verificar si hay cupones disponibles
             if (coupon.getQuantity() > 0) {
+                // Buscar la reparación por ID
                 RepairEntity repair = repairRepository.findById(repairId)
                         .orElseThrow(() -> new RuntimeException("Repair not found"));
 
+                // Verificar si ya se ha aplicado un descuento
                 if (repair.getDiscountAmount() != null && repair.getDiscountAmount() > 0) {
                     throw new RuntimeException("A discount has already been applied to this repair");
                 }
 
+                // Aplicar el descuento
                 double discountAmount = coupon.getAmount();
                 repair.setDiscountAmount(discountAmount);
 
+                // Reducir la cantidad de cupones disponibles
                 coupon.setQuantity(coupon.getQuantity() - 1);
                 discountCouponRepository.save(coupon);
 
+                // Guardar los cambios en la reparación
                 repairRepository.save(repair);
             } else {
                 throw new RuntimeException("No more coupons available for this brand");

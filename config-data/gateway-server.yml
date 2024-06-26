@@ -32,7 +32,7 @@ spring:
         - id: ms-repairs
           uri: lb://ms-repairs
           predicates:
-            - Path=/repairs/**
+            - Path=/repairs/**, /discounts/**
         - id: ms-reports
           uri: lb://ms-reports
           predicates:
