@@ -41,7 +41,7 @@ const AddEditRepairDetails = () => {
         }
         if (vehicleId) {
           const response = await vehicleService.get(vehicleId);
-          console.log("Vehicle response:", response.data);  // Log para verificar respuesta del vehículo
+          console.log("Vehicle response:", response.data);  
           setEngineType(response.data.engineType || "");
         } else {
           console.error("vehicleId no está definido");
@@ -80,7 +80,7 @@ const AddEditRepairDetails = () => {
       repairType,
       repairDate: formattedRepairDate,
       repairTime: formattedRepairTime,
-      repairAmount: repairAmount // This will be recalculated in the backend
+      repairAmount: repairAmount 
     };
 
     try {

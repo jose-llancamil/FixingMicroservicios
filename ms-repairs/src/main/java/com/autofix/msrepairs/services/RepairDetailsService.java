@@ -29,31 +29,16 @@ public class RepairDetailsService {
     private final RepairRepository repairRepository;
     private final VehicleFeignClient vehicleFeignClient;
     private final RepairListFeignClient repairListFeignClient;
-    private final DiscountService discountService;
     private final SurchargeService surchargeService;
 
-    /**
-     * Retrieves all repair details.
-     * @return a list of all repair details.
-     */
     public List<RepairDetailsEntity> findAllRepairDetails() {
         return repairDetailsRepository.findAll();
     }
 
-    /**
-     * Retrieves repair details by its ID.
-     * @param id the ID of the repair details.
-     * @return an optional containing the repair details if found, or empty if not.
-     */
     public Optional<RepairDetailsEntity> findRepairDetailsById(Long id) {
         return repairDetailsRepository.findById(id);
     }
 
-    /**
-     * Retrieves repair details by vehicle ID.
-     * @param vehicleId the ID of the vehicle.
-     * @return a list of repair details for the specified vehicle.
-     */
     public List<RepairDetailDTO> getRepairDetailsByVehicleId(Long vehicleId) {
         VehicleDTO vehicle = vehicleFeignClient.getVehicleById(vehicleId);
         if (vehicle == null) {
@@ -80,12 +65,6 @@ public class RepairDetailsService {
                 .collect(Collectors.toList());
     }
 
-
-    /**
-     * Saves new repair details and updates the related repair amounts.
-     * @param repairDetailsEntity the repair details entity to be saved.
-     * @return the saved repair details entity.
-     */
     public RepairDetailsEntity saveRepairDetails(RepairDetailsEntity repairDetailsEntity) {
         Optional<RepairEntity> repairOpt = repairRepository.findById(repairDetailsEntity.getRepairId());
         if (repairOpt.isPresent()) {
@@ -95,6 +74,9 @@ public class RepairDetailsService {
             BigDecimal repairPrice = repairListFeignClient.getRepairPrice(
                     repairDetailsEntity.getRepairType(), vehicle.getEngineType()
             );
+            if (repairPrice == null) {
+                repairPrice = BigDecimal.valueOf(0.0);
+            }
             repairDetailsEntity.setRepairAmount(repairPrice);
 
             RepairDetailsEntity savedDetail = repairDetailsRepository.save(repairDetailsEntity);
@@ -107,12 +89,6 @@ public class RepairDetailsService {
         }
     }
 
-    /**
-     * Updates an existing repair details by its ID.
-     * @param id the ID of the repair details to be updated.
-     * @param repairDetails the updated repair details entity.
-     * @return the updated repair details entity.
-     */
     public RepairDetailsEntity updateRepairDetails(Long id, @Valid RepairDetailsEntity repairDetails) {
         if (!repairDetailsRepository.existsById(id)) {
             throw new IllegalArgumentException("Repair details not found with id " + id);
@@ -126,6 +102,9 @@ public class RepairDetailsService {
             BigDecimal repairPrice = repairListFeignClient.getRepairPrice(
                     repairDetails.getRepairType(), vehicle.getEngineType()
             );
+            if (repairPrice == null) {
+                repairPrice = BigDecimal.valueOf(0.0);
+            }
             repairDetails.setRepairAmount(repairPrice);
 
             repairDetails.setId(id);
@@ -139,10 +118,6 @@ public class RepairDetailsService {
         }
     }
 
-    /**
-     * Deletes a repair detail by its ID.
-     * @param id the ID of the repair detail to be deleted.
-     */
     public void deleteRepairDetailById(Long id) {
         RepairDetailsEntity repairDetail = repairDetailsRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Repair detail not found with id " + id));
@@ -151,10 +126,6 @@ public class RepairDetailsService {
         updateRepairAmounts(repairId);
     }
 
-    /**
-     * Deletes all repair details and associated repairs for a specific vehicle ID.
-     * @param vehicleId the ID of the vehicle.
-     */
     public void deleteRepairDetailsByVehicleId(Long vehicleId) {
         List<RepairEntity> repairs = repairRepository.findAllByVehicleId(vehicleId);
         if (repairs.isEmpty()) {
@@ -168,20 +139,26 @@ public class RepairDetailsService {
         });
     }
 
-    /**
-     * Updates the repair amounts (total cost, surcharge, discount, tax) for a given repair.
-     * @param repairId the ID of the repair.
-     */
-    private void updateRepairAmounts(Long repairId) {
+    public void updateRepairAmounts(Long repairId) {
         List<RepairDetailsEntity> details = repairDetailsRepository.findAllByRepairId(repairId);
 
         double totalRepairAmount = details.stream().mapToDouble(d -> d.getRepairAmount().doubleValue()).sum();
+//        System.out.println("Total Repair Amount: " + totalRepairAmount);
+
         double surchargeAmount = details.isEmpty() ? 0 : calculateSurcharges(totalRepairAmount, repairId);
-        double discountAmount = details.isEmpty() ? 0 : calculateDiscounts(totalRepairAmount, repairId);
+//        System.out.println("Surcharge Amount: " + surchargeAmount);
+
+        double discountAmount = calculateDiscounts(totalRepairAmount, repairId);
+//        System.out.println("Discount Amount: " + discountAmount);
+
         double taxAmount = details.isEmpty() ? 0 : totalRepairAmount * 0.19;
-        double totalCost = totalRepairAmount + surchargeAmount - discountAmount + taxAmount;
+//        System.out.println("Tax Amount: " + taxAmount);
+
+        double totalCost = calculateTotalCost(totalRepairAmount, surchargeAmount, discountAmount, taxAmount);
+//        System.out.println("Total Cost: " + totalCost);
 
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
+
         repair.setTotalRepairAmount(totalRepairAmount);
         repair.setSurchargeAmount(surchargeAmount);
         repair.setDiscountAmount(discountAmount);
@@ -189,14 +166,18 @@ public class RepairDetailsService {
         repair.setTotalCost(totalCost);
 
         repairRepository.save(repair);
+//        Additional log to verify the saved values
+//        System.out.println("Saved Repair - Total Repair Amount: " + repair.getTotalRepairAmount());
+//        System.out.println("Saved Repair - Surcharge Amount: " + repair.getSurchargeAmount());
+//        System.out.println("Saved Repair - Discount Amount: " + repair.getDiscountAmount());
+//        System.out.println("Saved Repair - Tax Amount: " + repair.getTaxAmount());
+//        System.out.println("Saved Repair - Total Cost: " + repair.getTotalCost());
     }
 
-    /**
-     * Calculates the total surcharges for a repair.
-     * @param totalRepairAmount the total repair amount.
-     * @param repairId the ID of the repair.
-     * @return the total surcharge amount.
-     */
+    private double calculateTotalCost(double totalRepairAmount, double surchargeAmount, double discountAmount, double taxAmount) {
+        return totalRepairAmount + surchargeAmount - discountAmount + taxAmount;
+    }
+
     private double calculateSurcharges(double totalRepairAmount, Long repairId) {
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
         Long vehicleId = repair.getVehicleId();
@@ -208,12 +189,6 @@ public class RepairDetailsService {
         return mileageSurcharge + ageSurcharge + latePickupSurcharge;
     }
 
-    /**
-     * Calculates the total discounts for a repair.
-     * @param totalRepairAmount the total repair amount.
-     * @param repairId the ID of the repair.
-     * @return the total discount amount.
-     */
     private double calculateDiscounts(double totalRepairAmount, Long repairId) {
         double couponDiscount = calculateCouponDiscount(repairId);
         double dayOfServiceDiscount = calculateDayOfServiceDiscount(totalRepairAmount, repairId);
@@ -222,35 +197,11 @@ public class RepairDetailsService {
         return couponDiscount + dayOfServiceDiscount + numberOfRepairsDiscount;
     }
 
-    /**
-     * Calculates the coupon discount for a repair.
-     * @param repairId the ID of the repair.
-     * @return the coupon discount amount.
-     */
     private double calculateCouponDiscount(Long repairId) {
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
-        double couponDiscount = 0.0;
-        if (repair.getDiscountAmount() != null && repair.getDiscountAmount() > 0) {
-            couponDiscount = repair.getDiscountAmount();
-        } else {
-            String vehicleBrand = vehicleFeignClient.getVehicleById(repair.getVehicleId()).getBrand();
-            try {
-                discountService.applyDiscountCoupon(repairId, vehicleBrand);
-                repair = repairRepository.findById(repairId).orElseThrow();
-                couponDiscount = repair.getDiscountAmount();
-            } catch (RuntimeException e) {
-                // Handle the case where the discount cannot be applied
-            }
-        }
-        return couponDiscount;
+        return repair.getCouponDiscount() != null ? repair.getCouponDiscount() : 0.0;
     }
 
-    /**
-     * Calculates the day of service discount for a repair.
-     * @param totalRepairAmount the total repair amount.
-     * @param repairId the ID of the repair.
-     * @return the day of service discount amount.
-     */
     private double calculateDayOfServiceDiscount(double totalRepairAmount, Long repairId) {
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
         LocalDate entryDate = repair.getEntryDate();
@@ -265,12 +216,6 @@ public class RepairDetailsService {
         return 0.0;
     }
 
-    /**
-     * Calculates the number of repairs discount for a repair.
-     * @param totalRepairAmount the total repair amount.
-     * @param repairId the ID of the repair.
-     * @return the number of repairs discount amount.
-     */
     private double calculateNumberOfRepairsDiscount(double totalRepairAmount, Long repairId) {
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
         Long vehicleId = repair.getVehicleId();
@@ -291,12 +236,6 @@ public class RepairDetailsService {
         }
     }
 
-    /**
-     * Retrieves the discount rate based on engine type and bracket.
-     * @param engineType the type of engine.
-     * @param bracket the discount bracket.
-     * @return the discount rate.
-     */
     private double getDiscountRate(String engineType, int bracket) {
         switch (engineType.toLowerCase()) {
             case "gasolina":

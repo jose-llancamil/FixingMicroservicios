@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import repairService from "../services/repair.service";
+import discountService from "../services/discount.service";
+import vehicleService from "../services/vehicle.service";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -14,9 +16,19 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
+import DiscountIcon from '@mui/icons-material/Discount';
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 
 const RepairList = () => {
   const [repairs, setRepairs] = useState([]);
+  const [selectedRepair, setSelectedRepair] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [discounts, setDiscounts] = useState([]);
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const init = () => {
@@ -58,11 +70,67 @@ const RepairList = () => {
     navigate(`/repairs/details/vehicle/${vehicleId}`);
   };
 
+  const handleApplyDiscount = (repair) => {
+    if (repair.couponDiscount > 0) {
+      setMessage("Ya se ha aplicado un descuento a esta reparación.");
+      setOpen(true);
+      return;
+    }
+
+    setSelectedRepair(repair);
+    vehicleService.get(repair.vehicleId).then((vehicleResponse) => {
+      const vehicleBrand = vehicleResponse.data.brand;
+
+      discountService.getAll().then((response) => {
+        const availableDiscounts = response.data.filter(discount => discount.brand.toLowerCase() === vehicleBrand.toLowerCase());
+        if (availableDiscounts.length > 0) {
+          const discount = availableDiscounts[0];
+          discountService.getCouponQuantity(vehicleBrand).then((quantityResponse) => {
+            const quantity = quantityResponse.data;
+            if (quantity > 0) {
+              setDiscounts(availableDiscounts);
+              setMessage(`Para este vehículo de marca: ${vehicleBrand} hay ${quantity} cupones disponibles, ¿quieres aplicarlo?`);
+            } else {
+              setDiscounts([]);
+              setMessage(`No hay descuentos disponibles para esta marca de vehículo.`);
+            }
+            setOpen(true);
+          });
+        } else {
+          setDiscounts([]);
+          setMessage("No hay descuentos disponibles para esta marca de vehículo.");
+          setOpen(true);
+        }
+      });
+    });
+  };
+
+  const handleConfirmApplyDiscount = () => {
+    if (discounts.length > 0) {
+      const brand = discounts[0].brand;
+      console.log("Applying discount for brand:", brand);
+
+      discountService.applyCoupon(selectedRepair.id, brand)
+        .then(() => {
+          console.log("Descuento aplicado.");
+          init();
+        })
+        .catch((error) => {
+          console.error("Error al aplicar el descuento:", error);
+        });
+    }
+    setOpen(false);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
   return (
     <TableContainer component={Paper}>
       <br />
       <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
-      <h2>Lista de Reparaciones</h2>
+        <h2>Lista de Reparaciones</h2>
         <Link to="/repairs/create" style={{ textDecoration: "none" }}>
           <Button variant="contained" color="primary" startIcon={<AddIcon />}>
             Añadir Reparación
@@ -129,11 +197,21 @@ const RepairList = () => {
                   </Button>
                   <Button
                     variant="contained"
+                    color="info"
+                    size="small"
+                    onClick={() => handleApplyDiscount(repair)}
+                    startIcon={<DiscountIcon />}
+                    sx={{ mb: 1, width: '100%' }}
+                  >
+                    Top Car
+                  </Button>
+                  <Button
+                    variant="contained"
                     color="error"
                     size="small"
                     onClick={() => handleDelete(repair.id)}
                     startIcon={<DeleteIcon />}
-                    sx={{ width: '100%' }}
+                    sx={{ mb: 1, width: '100%' }}
                   >
                     Eliminar
                   </Button>
@@ -143,6 +221,18 @@ const RepairList = () => {
           ))}
         </TableBody>
       </Table>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Aplicar Descuento</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary">Cerrar</Button>
+          {discounts.length > 0 && message.includes("¿quieres aplicarlo?") && (
+            <Button onClick={handleConfirmApplyDiscount} color="primary">Aplicar</Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </TableContainer>
   );
 };

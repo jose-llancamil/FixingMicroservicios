@@ -67,9 +67,9 @@ public class RepairListService {
                 case "eléctrico":
                     return BigDecimal.valueOf(repair.getElectricPrice());
                 default:
-                    return null;
+                    return BigDecimal.valueOf(0.0);
             }
         }
-        return null;
+        return BigDecimal.valueOf(0.0);
     }
 }

@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,39 +18,35 @@ public class DiscountService {
     private final DiscountCouponRepository discountCouponRepository;
     private final RepairRepository repairRepository;
 
-    /**
-     * Applies a discount coupon to a repair.
-     * @param repairId the ID of the repair.
-     * @param brand the brand associated with the discount coupon.
-     */
+    public List<DiscountCouponEntity> getDiscounts() {
+        return discountCouponRepository.findAll();
+    }
+
+    public Optional<DiscountCouponEntity> getCouponByBrand(String brand) {
+        return discountCouponRepository.findByBrand(brand);
+    }
+
     @Transactional
     public void applyDiscountCoupon(Long repairId, String brand) {
-        // Buscar el cupón por la marca
+//        System.out.println("Applying discount for brand: " + brand + " and repairId: " + repairId);
         Optional<DiscountCouponEntity> couponOpt = discountCouponRepository.findByBrand(brand);
         if (couponOpt.isPresent()) {
             DiscountCouponEntity coupon = couponOpt.get();
-
-            // Verificar si hay cupones disponibles
             if (coupon.getQuantity() > 0) {
-                // Buscar la reparación por ID
                 RepairEntity repair = repairRepository.findById(repairId)
                         .orElseThrow(() -> new RuntimeException("Repair not found"));
-
-                // Verificar si ya se ha aplicado un descuento
-                if (repair.getDiscountAmount() != null && repair.getDiscountAmount() > 0) {
-                    throw new RuntimeException("A discount has already been applied to this repair");
+                if (repair.getCouponDiscount() != null && repair.getCouponDiscount() > 0) {
+                    throw new RuntimeException("A coupon discount has already been applied to this repair");
                 }
+                double discount = coupon.getAmount();
+                repair.setCouponDiscount(discount);
 
-                // Aplicar el descuento
-                double discountAmount = coupon.getAmount();
-                repair.setDiscountAmount(discountAmount);
+                repair.setDiscountAmount(repair.getDiscountAmount() + discount);
 
-                // Reducir la cantidad de cupones disponibles
                 coupon.setQuantity(coupon.getQuantity() - 1);
                 discountCouponRepository.save(coupon);
-
-                // Guardar los cambios en la reparación
                 repairRepository.save(repair);
+
             } else {
                 throw new RuntimeException("No more coupons available for this brand");
             }

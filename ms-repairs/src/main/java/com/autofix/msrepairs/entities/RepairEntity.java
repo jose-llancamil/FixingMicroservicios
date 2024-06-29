@@ -54,4 +54,7 @@ public class RepairEntity {
 
     @Column(name = "hora_retiro", nullable = false)
     private LocalTime pickUpTime;
+
+    @Column(name = "monto_descuento_cupon")
+    private Double couponDiscount = 0.0;
 }

@@ -7,12 +7,11 @@ import com.autofix.msrepairs.repositories.RepairDetailsRepository;
 import com.autofix.msrepairs.repositories.RepairRepository;
 import com.autofix.msrepairs.requests.VehicleDTO;
 import com.autofix.msrepairs.requests.VehicleRepairHistoryDTO;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,51 +24,32 @@ public class RepairService {
     private final RepairRepository repairRepository;
     private final RepairDetailsRepository repairDetailsRepository;
     private final VehicleFeignClient vehicleFeignClient;
+    private final RepairDetailsService repairDetailsService;
 
-    /**
-     * Retrieves all repairs.
-     * @return a list of all repairs.
-     */
     public List<RepairEntity> findAllRepairs() {
         return repairRepository.findAll();
     }
 
-    /**
-     * Retrieves a repair by its ID.
-     * @param id the ID of the repair.
-     * @return an optional containing the repair if found, or empty if not.
-     */
     public Optional<RepairEntity> findRepairById(Long id) {
         return repairRepository.findById(id);
     }
 
-    /**
-     * Saves a new repair.
-     * @param repair the repair entity to be saved.
-     * @return the saved repair entity.
-     */
     public RepairEntity saveRepair(@Valid RepairEntity repair) {
-        return repairRepository.save(repair);
+        RepairEntity savedRepair = repairRepository.save(repair);
+        repairDetailsService.updateRepairAmounts(savedRepair.getId());
+        return savedRepair;
     }
 
-    /**
-     * Updates an existing repair by its ID.
-     * @param id the ID of the repair to be updated.
-     * @param repair the updated repair entity.
-     * @return the updated repair entity.
-     */
     public RepairEntity updateRepair(Long id, @Valid RepairEntity repair) {
         if (!repairRepository.existsById(id)) {
             throw new IllegalArgumentException("Repair not found with id " + id);
         }
         repair.setId(id);
-        return repairRepository.save(repair);
+        RepairEntity updatedRepair = repairRepository.save(repair);
+        repairDetailsService.updateRepairAmounts(updatedRepair.getId());
+        return updatedRepair;
     }
 
-    /**
-     * Deletes a repair by its ID.
-     * @param id the ID of the repair to be deleted.
-     */
     public void deleteRepairById(Long id) {
         if (!repairRepository.existsById(id)) {
             throw new IllegalArgumentException("Repair not found with id " + id);
@@ -79,10 +59,6 @@ public class RepairService {
         repairRepository.deleteById(id);
     }
 
-    /**
-     * Retrieves the repair history for all vehicles.
-     * @return a list of VehicleRepairHistoryDTO containing the repair history for each vehicle.
-     */
     public List<VehicleRepairHistoryDTO> getVehicleRepairHistory() {
         List<RepairEntity> repairs = repairRepository.findAll();
 

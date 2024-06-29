@@ -17,12 +17,6 @@ public class SurchargeService {
     private final VehicleFeignClient vehicleFeignClient;
     private final RepairRepository repairRepository;
 
-    /**
-     * Calculates the mileage surcharge.
-     * @param vehicleId the ID of the vehicle.
-     * @param totalRepairCost the total repair cost.
-     * @return the mileage surcharge amount.
-     */
     public double calculateMileageSurcharge(Long vehicleId, double totalRepairCost) {
         VehicleDTO vehicle = vehicleFeignClient.getVehicleById(vehicleId);
         int mileage = vehicle.getMileage();
@@ -67,12 +61,6 @@ public class SurchargeService {
         }
     }
 
-    /**
-     * Calculates the age surcharge.
-     * @param vehicleId the ID of the vehicle.
-     * @param totalRepairCost the total repair cost.
-     * @return the age surcharge amount.
-     */
     public double calculateAgeSurcharge(Long vehicleId, double totalRepairCost) {
         VehicleDTO vehicle = vehicleFeignClient.getVehicleById(vehicleId);
         int vehicleAge = LocalDate.now().getYear() - vehicle.getYearOfManufacture();
@@ -112,12 +100,6 @@ public class SurchargeService {
         }
     }
 
-    /**
-     * Calculates the late pickup surcharge.
-     * @param repairId the ID of the repair.
-     * @param totalRepairCost the total repair cost.
-     * @return the late pickup surcharge amount.
-     */
     public double calculateLatePickupSurcharge(Long repairId, double totalRepairCost) {
         RepairEntity repair = repairRepository.findById(repairId).orElseThrow();
         LocalDate readyDate = repair.getExitDate();
