@@ -28,7 +28,6 @@ public class DiscountService {
 
     @Transactional
     public void applyDiscountCoupon(Long repairId, String brand) {
-//        System.out.println("Applying discount for brand: " + brand + " and repairId: " + repairId);
         Optional<DiscountCouponEntity> couponOpt = discountCouponRepository.findByBrand(brand);
         if (couponOpt.isPresent()) {
             DiscountCouponEntity coupon = couponOpt.get();
@@ -41,12 +40,22 @@ public class DiscountService {
                 double discount = coupon.getAmount();
                 repair.setCouponDiscount(discount);
 
-                repair.setDiscountAmount(repair.getDiscountAmount() + discount);
-
                 coupon.setQuantity(coupon.getQuantity() - 1);
                 discountCouponRepository.save(coupon);
+
+                // Update the total discount amount
+                double totalDiscountAmount = repair.getDiscountAmount() + discount;
+                repair.setDiscountAmount(totalDiscountAmount);
                 repairRepository.save(repair);
 
+                // Recalculate total cost
+                double totalRepairAmount = repair.getTotalRepairAmount();
+                double surchargeAmount = repair.getSurchargeAmount();
+                double taxAmount = repair.getTaxAmount();
+                double totalCost = totalRepairAmount + surchargeAmount - totalDiscountAmount + taxAmount;
+                repair.setTotalCost(totalCost);
+
+                repairRepository.save(repair);
             } else {
                 throw new RuntimeException("No more coupons available for this brand");
             }
